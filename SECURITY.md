@@ -1,12 +1,9 @@
-# Security Policy
+# Security
 
-ServiceFlow contains synthetic demo data only.
+This public portfolio edition contains synthetic records only. Report vulnerabilities privately through GitHub security advisories; never post credentials or private data in issues.
 
-- Require authenticated access in production.
-- Keep SECRET_KEY, database credentials and backups outside Git.
-- Use DEBUG=0, HTTPS, secure cookies and least-privilege database accounts.
-- Historical spreadsheets may contain personal data; keep originals private and use dry-run before import.
-- Never publish production exports, backups or requester identifiers.
-- Prefer PostgreSQL when scaling beyond a small single-instance deployment.
+`PORTFOLIO_DEMO=1` must use an isolated database. Public demo identities are deliberately unprivileged. Admin access and unrestricted uploads are disabled. Inputs remain untrusted; CSRF protection and authorization still apply.
 
-Report vulnerabilities privately through GitHub Security Advisories / Private Vulnerability Reporting.
+Deployment secrets belong only in the hosting platform environment. Use a unique random `SECRET_KEY`, PostgreSQL with TLS, exact allowed hosts and HTTPS cookies. Never reuse a production database for this demo.
+
+This bounded demonstration does not provide production-grade abuse prevention. Shared demo content is visible to visitors and must not contain personal or confidential information.

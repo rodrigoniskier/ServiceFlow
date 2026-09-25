@@ -1,64 +1,67 @@
 # ServiceFlow
 
-> **Portfolio edition:** a generic, privacy-aware front-office and service-request management platform inspired by a real administrative workflow, with all institutional data removed.
+### Do atendimento operacional ao indicador gerencial
 
-ServiceFlow turns scattered service records into structured, searchable and reusable operational data.
+Edição pública de portfólio com dados inteiramente sintéticos. O código não depende de sistemas originais, bases institucionais ou informações pessoais.
 
-## Portfolio snapshot
+**Stack:** Django · PostgreSQL · OpenPyXL · Analytics
 
-This project demonstrates **workflow digitization, Django domain modeling, authentication, filters, dashboards, idempotent historical import and exportable management data**.
+## O produto
 
-**Stack:** Django · PostgreSQL/SQLite · OpenPyXL · Bootstrap-free responsive UI · Tests · CI
+Busca e filtros combinados; indicadores; registro e detalhe do atendimento; histórico; exportação CSV e Excel.
 
-## Core workflow
+## Demonstração
 
-Each service record can include:
+Ative `PORTFOLIO_DEMO=1` **somente em um banco dedicado**. O acesso é feito pelo botão da tela inicial; não há senha pública nem acesso administrativo privilegiado.
 
-- request date;
-- requester type and reference/protocol;
-- requester name;
-- category and subcategory;
-- subject;
-- response/resolution;
-- channel;
-- status;
-- notes;
-- responsible staff member;
-- authenticated creator.
+56 atendimentos, 7 categorias, 4 responsáveis e diferentes canais e status.
 
-Categories and subcategories are administrable without code changes.
+A publicação online e os testes em PostgreSQL/Vercel ainda precisam ser concluídos. Nenhuma URL de aplicação é anunciada como funcional antes dessa verificação.
 
-## Management features
-
-- authenticated access;
-- structured registration form;
-- search across requester, reference, subject and resolution;
-- filters by period, category, status, channel and staff member;
-- dashboard with total/open requests and operational breakdowns;
-- CSV and Excel export;
-- historical XLSX import with **dry-run** and **idempotency key**;
-- synthetic demo dataset;
-- server-side validation and security settings.
-
-## Run locally
+## Execução local
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env
+export SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+export PORTFOLIO_DEMO=1
+export DEBUG=1
 python manage.py migrate
 python manage.py seed_demo
 python manage.py runserver
 ```
 
-Demo credentials:
+Os bancos locais são ignorados pelo Git. `seed_demo` é idempotente: executá-lo novamente não duplica a base. Para restaurar uma demonstração, use um **novo banco vazio dedicado**, execute as migrations (Django) e repita a carga; não execute reset em uma base de produção.
 
-- `admin` / `Demo-Admin-12345`
-- `agent.demo` / `Demo-Agent-12345`
+## Publicação na Vercel
 
-Demo credentials are for local portfolio use only.
+O arquivo `vercel.json` encaminha a aplicação Python e serve os assets estáticos. Configure exclusivamente no ambiente da plataforma:
 
-## Origin and privacy
+- `PORTFOLIO_DEMO=1`
+- `SECRET_KEY`: valor aleatório próprio desta implantação
+- `DATABASE_URL`: PostgreSQL dedicado, com TLS
+- `DEBUG=0`
+- `ALLOWED_HOSTS`: hostname exato da implantação
+- `CSRF_TRUSTED_ORIGINS`: origem HTTPS exata
 
-The operational system that inspired this case remains separate. This repository contains no institutional logo, production spreadsheet, real requester data, database backup or inherited Git history.
+Execute a carga inicial antes de abrir a URL pública. A aplicação recusa execução na Vercel sem banco persistente e chave de sessão. Não use SQLite no filesystem temporário da hospedagem.
+
+## Limites da demo
+
+- Painel administrativo bloqueado e contas demonstrativas sem privilégios perigosos.
+- Dados de exemplo identificados como sintéticos; visitantes devem usar apenas conteúdo fictício.
+- Novos uploads bloqueados.
+- Operações de escrita limitadas; os registros-base permanecem disponíveis.
+- CSRF e headers de segurança ativos.
+- Não é um ambiente de produção nem um serviço para informações confidenciais.
+
+## Validação
+
+```bash
+python manage.py test
+```
+
+Testes de autorização, CSRF, integridade dos dados demonstrativos e fluxos principais. Dependabot e GitHub Actions preservados.
+
+Consulte [SECURITY.md](SECURITY.md). Nunca faça commit de `.env`, tokens, bancos, exports ou credenciais.

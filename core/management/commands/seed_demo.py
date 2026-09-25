@@ -1,19 +1,23 @@
 from datetime import date,timedelta
+from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.management.base import BaseCommand
-from core.models import Category,ServiceRequest
+from django.core.management.base import BaseCommand,CommandError
+from django.db import transaction
+from core.models import Category,Subcategory,ServiceRequest
 
 class Command(BaseCommand):
-    help="Create synthetic demo data"
+    help='Populate a dedicated demo database with 56 synthetic service requests.'
+    @transaction.atomic
     def handle(self,*args,**kwargs):
-        admin,_=User.objects.get_or_create(username="admin",defaults={"is_staff":True,"is_superuser":True,"email":"admin@example.com"})
-        admin.set_password("Demo-Admin-12345"); admin.save()
-        agent,_=User.objects.get_or_create(username="agent.demo",defaults={"first_name":"Demo","last_name":"Agent","email":"agent@example.com"})
-        agent.set_password("Demo-Agent-12345"); agent.save()
-        cats=[]
-        for name in ["Documents","Access & systems","Scheduling","Student support","Infrastructure"]:
-            cats.append(Category.objects.get_or_create(name=name)[0])
-        if not ServiceRequest.objects.exists():
-            for i in range(12):
-                ServiceRequest.objects.create(request_date=date.today()-timedelta(days=i*3),requester_type="Client",requester_reference=f"DEMO-{1000+i}",requester_name=f"Demo Requester {i+1}",category=cats[i%len(cats)],subject=f"Synthetic service request {i+1}",resolution="Resolved with demo guidance." if i%3==0 else "",channel=["EMAIL","IN_PERSON","CHAT"][i%3],status="RESOLVED" if i%3==0 else "OPEN",handled_by="Demo Agent",created_by=agent)
-        self.stdout.write(self.style.SUCCESS("Synthetic demo data ready."))
+        if not settings.PORTFOLIO_DEMO: raise CommandError('PORTFOLIO_DEMO=1 is required.')
+        agent,_=User.objects.get_or_create(username='agent.demo',defaults={'first_name':'Mariana','last_name':'Costa','email':'mariana@example.invalid'})
+        agent.is_staff=False;agent.is_superuser=False;agent.set_unusable_password();agent.save()
+        categories=[('Documentos','Emissão','Solicitação de declaração de participação'),('Sistemas e acessos','Portal','Orientação para acesso ao portal'),('Agendamentos','Reunião','Agendamento de orientação individual'),('Atendimento acadêmico','Inscrição','Acompanhamento de inscrição em oficina'),('Infraestrutura','Equipamentos','Verificação de equipamento na sala de apoio'),('Comunicação','Comunicados','Atualização do informativo da equipe'),('Processos administrativos','Cadastro','Conferência de cadastro de participante')]
+        names=['Lucas Almeida','Rafael Oliveira','Ana Martins','Camila Rocha','Felipe Souza','Juliana Freitas','Pedro Nunes','Clara Mendes','Gabriel Lima','Luiza Barros','Daniel Ribeiro','Helena Duarte']
+        for i in range(56):
+            title,sub,subject=categories[i%7]
+            category,_=Category.objects.get_or_create(name=title)
+            subcategory,_=Subcategory.objects.get_or_create(category=category,name=sub)
+            status=['RESOLVED','OPEN','RESOLVED','IN_PROGRESS','RESOLVED','FORWARDED','RESOLVED','CANCELLED'][i%8]
+            ServiceRequest.objects.get_or_create(requester_reference=f'SF-2026-{1001+i}',defaults={'request_date':date(2026,9,25)-timedelta(days=(i*3)%42),'requester_type':'Participante','requester_name':names[i%len(names)],'category':category,'subcategory':subcategory,'subject':subject,'resolution':'Orientação encaminhada e confirmação registrada.' if status=='RESOLVED' else '', 'channel':['EMAIL','CHAT','IN_PERSON','PHONE'][i%4],'status':status,'notes':'Registro fictício para demonstração.','handled_by':['Mariana Costa','Bruno Carvalho','Beatriz Andrade','Daniel Ribeiro'][i%4],'created_by':agent})
+        self.stdout.write(self.style.SUCCESS('56 synthetic requests ready.'))

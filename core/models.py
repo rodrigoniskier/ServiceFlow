@@ -19,17 +19,17 @@ class Subcategory(models.Model):
 
 class ServiceRequest(models.Model):
     class Status(models.TextChoices):
-        OPEN="OPEN","Open"
-        IN_PROGRESS="IN_PROGRESS","In progress"
-        FORWARDED="FORWARDED","Forwarded"
-        RESOLVED="RESOLVED","Resolved"
-        CANCELLED="CANCELLED","Cancelled"
+        OPEN="OPEN","Aberto"
+        IN_PROGRESS="IN_PROGRESS","Em andamento"
+        FORWARDED="FORWARDED","Encaminhado"
+        RESOLVED="RESOLVED","Resolvido"
+        CANCELLED="CANCELLED","Cancelado"
     class Channel(models.TextChoices):
-        IN_PERSON="IN_PERSON","In person"
+        IN_PERSON="IN_PERSON","Presencial"
         EMAIL="EMAIL","Email"
-        PHONE="PHONE","Phone"
+        PHONE="PHONE","Telefone"
         CHAT="CHAT","Chat"
-        OTHER="OTHER","Other"
+        OTHER="OTHER","Outro"
     request_date=models.DateField()
     requester_type=models.CharField(max_length=80,blank=True)
     requester_reference=models.CharField(max_length=100,blank=True,db_index=True)
