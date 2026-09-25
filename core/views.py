@@ -1,5 +1,8 @@
 import csv
 from datetime import date
+from django.conf import settings
+from django.http import HttpResponseForbidden
+from django.core.exceptions import ValidationError
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
@@ -10,7 +13,7 @@ from django.shortcuts import redirect,render
 from django.views.decorators.http import require_POST
 from .forms import ServiceRequestForm
 from .models import Category,ServiceRequest
-from .services import export_xlsx,import_history
+from .services import export_xlsx,import_history,safe_cell
 
 class ServiceFlowLoginView(LoginView):
     template_name="login.html"
@@ -22,10 +25,14 @@ def filtered_requests(request):
     if q: qs=qs.filter(Q(requester_name__icontains=q)|Q(requester_reference__icontains=q)|Q(subject__icontains=q)|Q(resolution__icontains=q))
     for key,field in [("status","status"),("channel","channel"),("category","category_id"),("handled_by","handled_by")]:
         value=(request.GET.get(key) or "").strip()
-        if value: qs=qs.filter(**{field:value})
+        if value:
+            if key == "category" and not value.isdigit(): return qs.none()
+            qs=qs.filter(**{field:value})
     start=request.GET.get("start"); end=request.GET.get("end")
-    if start: qs=qs.filter(request_date__gte=start)
-    if end: qs=qs.filter(request_date__lte=end)
+    try:
+        if start: qs=qs.filter(request_date__gte=date.fromisoformat(start))
+        if end: qs=qs.filter(request_date__lte=date.fromisoformat(end))
+    except (ValueError,TypeError): return qs.none()
     return qs
 
 @login_required
@@ -33,13 +40,15 @@ def dashboard(request):
     qs=filtered_requests(request)
     totals={"total":qs.count(),"open":qs.exclude(status__in=["RESOLVED","CANCELLED"]).count(),"resolved":qs.filter(status="RESOLVED").count()}
     by_category=list(qs.values("category__name").annotate(total=Count("id")).order_by("-total")[:8])
-    return render(request,"dashboard.html",{"requests":qs[:100],"totals":totals,"by_category":by_category,"categories":Category.objects.filter(active=True)})
+    return render(request,"dashboard.html",{"requests":qs[:100],"totals":totals,"by_category":by_category,"categories":Category.objects.filter(active=True),"statuses":ServiceRequest.Status.choices,"channels":ServiceRequest.Channel.choices,"agents":ServiceRequest.objects.values_list("handled_by",flat=True).distinct(),"resolution_rate":round(totals["resolved"]*100/totals["total"]) if totals["total"] else 0})
 
 @login_required
 def create_request(request):
     form=ServiceRequestForm(request.POST or None,initial={"request_date":date.today(),"handled_by":request.user.get_full_name() or request.user.username})
     if request.method=="POST" and form.is_valid():
-        obj=form.save(commit=False); obj.created_by=request.user; obj.save(); messages.success(request,"Request recorded."); return redirect("dashboard")
+        if settings.PORTFOLIO_DEMO and ServiceRequest.objects.count() >= 200:
+            return HttpResponseForbidden("Limite da demonstração atingido.")
+        obj=form.save(commit=False); obj.created_by=request.user; obj.save(); messages.success(request,"Atendimento registrado com sucesso."); return redirect("dashboard")
     return render(request,"request_form.html",{"form":form})
 
 @login_required
@@ -47,7 +56,7 @@ def export_csv(request):
     qs=filtered_requests(request)
     response=HttpResponse(content_type="text/csv; charset=utf-8"); response["Content-Disposition"]='attachment; filename="serviceflow.csv"'
     w=csv.writer(response); w.writerow(["date","reference","requester","category","subject","resolution","channel","status","handled_by"])
-    for r in qs.select_related("category"): w.writerow([r.request_date,r.requester_reference,r.requester_name,r.category.name,r.subject,r.resolution,r.get_channel_display(),r.get_status_display(),r.handled_by])
+    for r in qs.select_related("category"): w.writerow([safe_cell(v) for v in [r.request_date,r.requester_reference,r.requester_name,r.category.name,r.subject,r.resolution,r.get_channel_display(),r.get_status_display(),r.handled_by]])
     return response
 
 @login_required
@@ -71,3 +80,9 @@ def import_history_view(request):
 @login_required
 def logout_view(request):
     logout(request); return redirect("login")
+
+@login_required
+def request_detail(request, pk):
+    from django.shortcuts import get_object_or_404
+    obj=get_object_or_404(ServiceRequest.objects.select_related("category", "subcategory", "created_by"),pk=pk)
+    return render(request,"request_detail.html",{"record":obj})

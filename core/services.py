@@ -2,13 +2,18 @@ from io import BytesIO
 from openpyxl import Workbook, load_workbook
 from .models import Category, ImportBatch, ServiceRequest
 
+def safe_cell(value):
+    if isinstance(value,str) and value.lstrip().startswith(("=","+","-","@")):
+        return "'" + value
+    return value
+
 HISTORICAL_HEADERS=["date","reference","name","subject","resolution","handled_by"]
 
 def export_xlsx(queryset):
     wb=Workbook(); ws=wb.active; ws.title="Requests"
     ws.append(["Date","Reference","Requester","Category","Subject","Resolution","Channel","Status","Handled by"])
     for r in queryset.select_related("category"):
-        ws.append([r.request_date.isoformat(),r.requester_reference,r.requester_name,r.category.name,r.subject,r.resolution,r.get_channel_display(),r.get_status_display(),r.handled_by])
+        ws.append([safe_cell(v) for v in [r.request_date.isoformat(),r.requester_reference,r.requester_name,r.category.name,r.subject,r.resolution,r.get_channel_display(),r.get_status_display(),r.handled_by]])
     summary=wb.create_sheet("Summary")
     summary.append(["Metric","Value"]); summary.append(["Total",queryset.count()]); summary.append(["Open",queryset.exclude(status__in=["RESOLVED","CANCELLED"]).count()])
     out=BytesIO(); wb.save(out); out.seek(0); return out
