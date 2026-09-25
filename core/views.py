@@ -40,7 +40,7 @@ def dashboard(request):
     qs=filtered_requests(request)
     totals={"total":qs.count(),"open":qs.exclude(status__in=["RESOLVED","CANCELLED"]).count(),"resolved":qs.filter(status="RESOLVED").count()}
     by_category=list(qs.values("category__name").annotate(total=Count("id")).order_by("-total")[:8])
-    return render(request,"dashboard.html",{"requests":qs[:100],"totals":totals,"by_category":by_category,"categories":Category.objects.filter(active=True),"statuses":ServiceRequest.Status.choices,"channels":ServiceRequest.Channel.choices,"agents":ServiceRequest.objects.values_list("handled_by",flat=True).distinct(),"resolution_rate":round(totals["resolved"]*100/totals["total"]) if totals["total"] else 0})
+    return render(request,"dashboard.html",{"requests":qs[:100],"totals":totals,"by_category":by_category,"categories":Category.objects.filter(active=True),"statuses":ServiceRequest.Status.choices,"channels":ServiceRequest.Channel.choices,"agents":ServiceRequest.objects.order_by("handled_by").values_list("handled_by",flat=True).distinct(),"resolution_rate":round(totals["resolved"]*100/totals["total"]) if totals["total"] else 0})
 
 @login_required
 def create_request(request):
