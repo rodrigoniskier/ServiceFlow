@@ -58,3 +58,14 @@ class PortfolioDemoTests(TestCase):
     def test_export_neutralizes_formula_input(self):
         from core.services import safe_cell
         self.assertEqual(safe_cell("=1+2"),"'=1+2")
+
+    def test_reseed_allows_a_visitor_to_reuse_a_reference(self):
+        original=ServiceRequest.objects.order_by('pk').first()
+        original.pk=None
+        original.subject='Outra demanda fictícia com a mesma referência'
+        original.save()
+        before=ServiceRequest.objects.count()
+        call_command('seed_demo',verbosity=0)
+        self.assertEqual(ServiceRequest.objects.count(),before)
+        original.refresh_from_db()
+        self.assertEqual(original.subject,'Outra demanda fictícia com a mesma referência')

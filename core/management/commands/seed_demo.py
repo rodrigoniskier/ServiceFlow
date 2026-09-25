@@ -19,5 +19,8 @@ class Command(BaseCommand):
             category,_=Category.objects.get_or_create(name=title)
             subcategory,_=Subcategory.objects.get_or_create(category=category,name=sub)
             status=['RESOLVED','OPEN','RESOLVED','IN_PROGRESS','RESOLVED','FORWARDED','RESOLVED','CANCELLED'][i%8]
+            # A public visitor can reuse a reference; existing requests are never overwritten.
+            if ServiceRequest.objects.filter(requester_reference=f'SF-2026-{1001+i}').exists():
+                continue
             ServiceRequest.objects.get_or_create(requester_reference=f'SF-2026-{1001+i}',defaults={'request_date':date(2026,9,25)-timedelta(days=(i*3)%42),'requester_type':'Participante','requester_name':names[i%len(names)],'category':category,'subcategory':subcategory,'subject':subject,'resolution':'Orientação encaminhada e confirmação registrada.' if status=='RESOLVED' else '', 'channel':['EMAIL','CHAT','IN_PERSON','PHONE'][i%4],'status':status,'notes':'Registro fictício para demonstração.','handled_by':['Mariana Costa','Bruno Carvalho','Beatriz Andrade','Daniel Ribeiro'][i%4],'created_by':agent})
         self.stdout.write(self.style.SUCCESS('56 synthetic requests ready.'))
