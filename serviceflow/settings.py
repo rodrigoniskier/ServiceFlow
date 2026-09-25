@@ -44,3 +44,11 @@ if os.environ.get("VERCEL"):
     DATABASES["default"]["CONN_MAX_AGE"] = 0
     if not os.environ.get("DATABASE_URL"):
         raise RuntimeError("A persistent DATABASE_URL is required on Vercel")
+
+# Trust only deployment hosts injected by Vercel, including previews.
+if os.environ.get("VERCEL"):
+    for variable in ("VERCEL_URL", "VERCEL_BRANCH_URL", "VERCEL_PROJECT_PRODUCTION_URL"):
+        host = os.environ.get(variable, "").strip()
+        if host and "/" not in host:
+            ALLOWED_HOSTS.append(host)
+            CSRF_TRUSTED_ORIGINS.append("https://" + host)
