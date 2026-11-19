@@ -6,6 +6,18 @@ Edição pública de portfólio com dados inteiramente sintéticos. O código n�
 
 **Stack:** Django · PostgreSQL · OpenPyXL · Analytics
 
+## Problema, público e resultado
+
+**Problema.** Atendimentos operacionais registrados sem padrão dificultam saber quantos são, de que tipo, quem os atende e quanto demoram, e o gestor fica sem indicadores.
+
+**Para quem.** Equipes de atendimento e seus gestores: quem registra e acompanha os atendimentos e quem precisa dos indicadores.
+
+**O que entrega.** Registro e detalhe do atendimento, histórico, busca e filtros combinados, indicadores gerenciais e exportação para CSV e Excel respeitando os filtros ativos.
+
+**Tecnologias.** Python, Django, PostgreSQL, SQL, OpenPyXL, Vercel, GitHub Actions.
+
+**Qualidade e evidências.** Demonstração publicada com dados 100% sintéticos (56 atendimentos, 7 categorias, 4 responsáveis); 9 funções de teste automatizadas; workflow de CI.
+
 ## O produto
 
 Busca e filtros combinados; indicadores; registro e detalhe do atendimento; histórico; exportação CSV e Excel.
